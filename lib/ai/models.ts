@@ -1,4 +1,4 @@
-export const DEFAULT_CHAT_MODEL = "google/gemini-2.5-flash-preview-05-20";
+export const DEFAULT_CHAT_MODEL = "anthropic/claude-haiku-4.5";
 
 export type ChatModel = {
   id: string;

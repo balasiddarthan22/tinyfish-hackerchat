@@ -4,6 +4,7 @@ import {
   createUIMessageStream,
   createUIMessageStreamResponse,
   smoothStream,
+  stepCountIs,
   streamText,
 } from "ai";
 import { auth, type UserType } from "@/app/(auth)/auth";
@@ -148,8 +149,8 @@ export async function POST(request: Request) {
           //   // Add more tools here...
           // },
           //
-          // Set maxSteps to allow the AI to use tools in a loop (agentic):
-          // maxSteps: 5,
+          // Enable multi-step tool use (agentic loop):
+          // stopWhen: stepCountIs(5),
           // ================================================================
 
           experimental_transform: smoothStream(),
@@ -166,7 +167,7 @@ export async function POST(request: Request) {
           },
         });
 
-        dataStream.merge(
+        await dataStream.merge(
           result.toUIMessageStream({
             sendReasoning: true,
           })

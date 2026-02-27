@@ -55,7 +55,7 @@ export function getTitleModel() {
   if (isTestEnvironment && myProvider) {
     return myProvider.languageModel("title-model");
   }
-  return openrouter("google/gemini-2.5-flash-preview-05-20");
+  return openrouter("anthropic/claude-haiku-4.5");
 }
 
 export function getArtifactModel() {
