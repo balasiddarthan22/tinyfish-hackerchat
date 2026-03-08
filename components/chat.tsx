@@ -168,7 +168,7 @@ export function Chat({
       const durationMs = Date.now() - benchmarkStartRef.current;
       const responseText = extractAllText(messagesRef.current);
       const toolCallCount = countToolCalls(messagesRef.current);
-      const result = computeBenchmarkResult(responseText, toolCallCount, durationMs);
+      const result = computeBenchmarkResult(responseText, toolCallCount, durationMs, messagesRef.current);
       setBenchmarkResult(result);
       setIsBenchmarking(false);
     }

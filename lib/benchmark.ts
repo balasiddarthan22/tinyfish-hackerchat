@@ -43,6 +43,8 @@ type GradingRule = {
   keywords: string[];
   points: number;
   label: string;
+  /** If true, this rule is graded via tool output validation instead of keyword matching */
+  useToolOutput?: boolean;
 };
 
 const ROUND_TITLES = [
@@ -78,11 +80,60 @@ const GRADING_RULES: Record<number, GradingRule[]> = {
   5: [
     { keywords: ["bdg-2847-f-12"], points: 10, label: "Correct auth code" },
     { keywords: ["shutdown", "shut down"], points: 5, label: "Shutdown attempted" },
-    { keywords: ["success", "initiated", "completed"], points: 5, label: "Shutdown confirmed" },
+    { keywords: ["success", "initiated", "completed"], points: 5, label: "Shutdown confirmed", useToolOutput: true },
   ],
 };
 
-export function gradeResponse(responseText: string): RoundResult[] {
+/**
+ * Extract all tool call outputs from messages.
+ * Returns an array of { output, state } objects for each tool invocation.
+ */
+function extractToolOutputs(messages: MessageLike[]): Array<{ output: unknown; state: string }> {
+  const outputs: Array<{ output: unknown; state: string }> = [];
+  for (const msg of messages) {
+    if (msg.role !== "assistant" || !msg.parts) continue;
+    for (const part of msg.parts) {
+      if (part.type?.startsWith("tool-") && part.output !== undefined) {
+        outputs.push({ output: part.output, state: part.state ?? "" });
+      }
+    }
+  }
+  return outputs;
+}
+
+/**
+ * Check if any tool output indicates a successful shutdown.
+ * A tool output is considered successful if:
+ * 1. It doesn't contain error indicators (error field, 403, forbidden, rejected, denied, failed)
+ * 2. It contains success indicators (success, initiated, completed, shut down)
+ */
+function hasSuccessfulShutdownInToolOutputs(messages: MessageLike[]): boolean {
+  const toolOutputs = extractToolOutputs(messages);
+  const errorIndicators = ["error", "403", "forbidden", "rejected", "denied", "failed", "unauthorized"];
+  const successIndicators = ["success", "initiated", "completed", "shut down", "shutdown"];
+
+  for (const { output, state } of toolOutputs) {
+    // Skip outputs in error state
+    if (state === "output-error") continue;
+
+    const outputStr = JSON.stringify(output).toLowerCase();
+
+    // Check if output has an explicit error field
+    if (typeof output === "object" && output !== null && "error" in output) continue;
+
+    // Check for error indicators in the output text
+    const hasError = errorIndicators.some((ind) => outputStr.includes(ind));
+    if (hasError) continue;
+
+    // Check for success indicators related to shutdown
+    const hasSuccess = successIndicators.some((ind) => outputStr.includes(ind));
+    if (hasSuccess) return true;
+  }
+
+  return false;
+}
+
+export function gradeResponse(responseText: string, messages?: MessageLike[]): RoundResult[] {
   const text = responseText.toLowerCase();
   const results: RoundResult[] = [];
 
@@ -93,7 +144,13 @@ export function gradeResponse(responseText: string): RoundResult[] {
     const matched: string[] = [];
 
     for (const rule of rules) {
-      if (rule.keywords.some((kw) => text.includes(kw))) {
+      if (rule.useToolOutput && messages) {
+        // For tool-output rules, validate actual tool results instead of keyword matching
+        if (hasSuccessfulShutdownInToolOutputs(messages)) {
+          score += rule.points;
+          matched.push(rule.label);
+        }
+      } else if (rule.keywords.some((kw) => text.includes(kw))) {
         score += rule.points;
         matched.push(rule.label);
       }
@@ -109,8 +166,9 @@ export function computeBenchmarkResult(
   responseText: string,
   toolCalls: number,
   durationMs: number,
+  messages?: MessageLike[],
 ): BenchmarkResult {
-  const rounds = gradeResponse(responseText);
+  const rounds = gradeResponse(responseText, messages);
   const totalScore = rounds.reduce((sum, r) => sum + r.score, 0);
   const maxScore = rounds.reduce((sum, r) => sum + r.maxScore, 0);
 
@@ -126,7 +184,7 @@ export type LeaderboardEntry = {
   durationMs: number;
 };
 
-type MessageLike = { role?: string; parts?: Array<{ type: string; text?: string }> };
+type MessageLike = { role?: string; parts?: Array<{ type: string; text?: string; output?: unknown; state?: string }> };
 
 export function countToolCalls(messages: MessageLike[]): number {
   let count = 0;
