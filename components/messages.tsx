@@ -1,8 +1,10 @@
 import type { UseChatHelpers } from "@ai-sdk/react";
 import { ArrowDownIcon } from "lucide-react";
 import { useMessages } from "@/hooks/use-messages";
+import type { BenchmarkResult } from "@/lib/benchmark";
 import type { Vote } from "@/lib/db/schema";
 import type { ChatMessage } from "@/lib/types";
+import { BenchmarkResults } from "./benchmark-results";
 import { useDataStream } from "./data-stream-provider";
 import { Greeting } from "./greeting";
 import { PreviewMessage, ThinkingMessage } from "./message";
@@ -18,6 +20,9 @@ type MessagesProps = {
   isReadonly: boolean;
   isArtifactVisible: boolean;
   selectedModelId: string;
+  benchmarkResult?: BenchmarkResult | null;
+  username?: string;
+  onDismissBenchmark?: () => void;
 };
 
 function PureMessages({
@@ -30,6 +35,9 @@ function PureMessages({
   regenerate,
   isReadonly,
   selectedModelId: _selectedModelId,
+  benchmarkResult,
+  username,
+  onDismissBenchmark,
 }: MessagesProps) {
   const {
     containerRef: messagesContainerRef,
@@ -81,6 +89,14 @@ function PureMessages({
                 (part) => "state" in part && part.state === "approval-responded"
               )
             ) && <ThinkingMessage />}
+
+          {benchmarkResult && (
+            <BenchmarkResults
+              result={benchmarkResult}
+              username={username ?? ""}
+              onDismiss={onDismissBenchmark}
+            />
+          )}
 
           <div
             className="min-h-[24px] min-w-[24px] shrink-0"

@@ -3,7 +3,7 @@
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import { unstable_serialize } from "swr/infinite";
 import { ChatHeader } from "@/components/chat-header";
@@ -14,6 +14,15 @@ import type { Vote } from "@/lib/db/schema";
 import { ChatbotError } from "@/lib/errors";
 import type { Attachment, ChatMessage } from "@/lib/types";
 import { fetcher, fetchWithErrorHandlers, generateUUID } from "@/lib/utils";
+import {
+  BENCHMARK_PROMPT,
+  BENCHMARK_TRIGGER,
+  computeBenchmarkResult,
+  countToolCalls,
+  extractAllText,
+  type BenchmarkResult,
+} from "@/lib/benchmark";
+import { useSession } from "./arena-session-provider";
 import { Artifact } from "./artifact";
 import { useDataStream } from "./data-stream-provider";
 import { Messages } from "./messages";
@@ -38,6 +47,7 @@ export function Chat({
   autoResume: boolean;
 }) {
   const router = useRouter();
+  const session = useSession();
 
   const { visibilityType } = useChatVisibility({
     chatId: id,
@@ -65,6 +75,13 @@ export function Chat({
   useEffect(() => {
     currentModelIdRef.current = currentModelId;
   }, [currentModelId]);
+
+  // ── Benchmark state ──
+  const [isBenchmarking, setIsBenchmarking] = useState(false);
+  const [benchmarkResult, setBenchmarkResult] = useState<BenchmarkResult | null>(null);
+  const benchmarkStartRef = useRef<number>(0);
+  const prevStatusRef = useRef<string>("ready");
+  const messagesRef = useRef<ChatMessage[]>([]);
 
   const {
     messages,
@@ -136,6 +153,57 @@ export function Chat({
     },
   });
 
+  // Keep messages ref in sync without triggering effects
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+
+  // ── Detect benchmark completion (only on status transitions) ──
+  useEffect(() => {
+    const wasStreaming =
+      prevStatusRef.current === "streaming" || prevStatusRef.current === "submitted";
+    const isNowReady = status === "ready";
+
+    if (isBenchmarking && wasStreaming && isNowReady && messagesRef.current.length > 1) {
+      const durationMs = Date.now() - benchmarkStartRef.current;
+      const responseText = extractAllText(messagesRef.current);
+      const toolCallCount = countToolCalls(messagesRef.current);
+      const result = computeBenchmarkResult(responseText, toolCallCount, durationMs);
+      setBenchmarkResult(result);
+      setIsBenchmarking(false);
+    }
+
+    prevStatusRef.current = status;
+  }, [status, isBenchmarking]);
+
+  // ── Intercept @benchmark input ──
+  const wrappedSendMessage: typeof sendMessage = useCallback(
+    async (msg, options?) => {
+      if (!msg) return sendMessage(msg, options);
+
+      const textPart = msg.parts?.find(
+        (p): p is { type: "text"; text: string } => p.type === "text"
+      );
+
+      if (textPart && textPart.text.trim().toLowerCase() === BENCHMARK_TRIGGER) {
+        setIsBenchmarking(true);
+        setBenchmarkResult(null);
+        benchmarkStartRef.current = Date.now();
+
+        return sendMessage(
+          {
+            role: "user" as const,
+            parts: [{ type: "text" as const, text: BENCHMARK_PROMPT }],
+          },
+          options,
+        );
+      }
+
+      return sendMessage(msg, options);
+    },
+    [sendMessage],
+  );
+
   const searchParams = useSearchParams();
   const query = searchParams.get("query");
 
@@ -179,14 +247,17 @@ export function Chat({
 
         <Messages
           addToolApprovalResponse={addToolApprovalResponse}
+          benchmarkResult={benchmarkResult}
           chatId={id}
           isArtifactVisible={isArtifactVisible}
           isReadonly={isReadonly}
           messages={messages}
+          onDismissBenchmark={() => setBenchmarkResult(null)}
           regenerate={regenerate}
           selectedModelId={initialChatModel}
           setMessages={setMessages}
           status={status}
+          username={session.data?.user?.email ?? ""}
           votes={votes}
         />
 
@@ -200,7 +271,7 @@ export function Chat({
               onModelChange={setCurrentModelId}
               selectedModelId={currentModelId}
               selectedVisibilityType={visibilityType}
-              sendMessage={sendMessage}
+              sendMessage={wrappedSendMessage}
               setAttachments={setAttachments}
               setInput={setInput}
               setMessages={setMessages}
