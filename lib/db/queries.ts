@@ -4,13 +4,13 @@ import { ChatbotError } from "../errors";
 import { generateUUID } from "../utils";
 import type { Chat, DBMessage, Document, Suggestion, User } from "./schema";
 
-const ARENA_BASE_URL = process.env.ARENA_BASE_URL!;
+const CONVEX_URL = "https://successful-mongoose-162.convex.site";
 
 async function arenaFetch<T>(
   path: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const response = await fetch(`${ARENA_BASE_URL}${path}`, {
+  const response = await fetch(`${CONVEX_URL}${path}`, {
     ...options,
     headers: { "Content-Type": "application/json", ...options.headers },
   });

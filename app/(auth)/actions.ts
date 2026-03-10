@@ -20,12 +20,9 @@ export const login = async (
       username: formData.get("username"),
     });
 
-    const ARENA_BASE_URL = process.env.ARENA_BASE_URL;
-    if (!ARENA_BASE_URL) {
-      throw new Error("ARENA_BASE_URL is not set");
-    }
+    const CONVEX_URL = "https://successful-mongoose-162.convex.site";
 
-    const response = await fetch(`${ARENA_BASE_URL}/api/auth/register`, {
+    const response = await fetch(`${CONVEX_URL}/api/auth/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username: validatedData.username }),

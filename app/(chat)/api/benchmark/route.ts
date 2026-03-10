@@ -2,7 +2,7 @@ import { auth } from "@/app/(auth)/auth";
 import { ChatbotError } from "@/lib/errors";
 import type { BenchmarkResult } from "@/benchmark/benchmark";
 
-const ARENA_BASE_URL = process.env.ARENA_BASE_URL!;
+const CONVEX_URL = "https://successful-mongoose-162.convex.site";
 
 // POST: Submit benchmark results to Convex
 export async function POST(request: Request) {
@@ -19,7 +19,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const res = await fetch(`${ARENA_BASE_URL}/api/benchmark/submit`, {
+    const res = await fetch(`${CONVEX_URL}/api/benchmark/submit`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
 // GET: Fetch benchmark leaderboard from Convex
 export async function GET() {
   try {
-    const res = await fetch(`${ARENA_BASE_URL}/api/benchmark/leaderboard`);
+    const res = await fetch(`${CONVEX_URL}/api/benchmark/leaderboard`);
     if (!res.ok) return Response.json([]);
     return Response.json(await res.json());
   } catch {
