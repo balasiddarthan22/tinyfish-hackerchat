@@ -21,7 +21,7 @@ import {
   countToolCalls,
   extractAllText,
   type BenchmarkResult,
-} from "@/lib/benchmark";
+} from "@/benchmark/benchmark";
 import { useSession } from "./arena-session-provider";
 import { Artifact } from "./artifact";
 import { useDataStream } from "./data-stream-provider";

@@ -1,11 +1,10 @@
 import type { InferUITool, UIMessage } from "ai";
 import { z } from "zod";
 import type { ArtifactKind } from "@/components/artifact";
-import type { createDocument } from "./ai/tools/create-document";
-import type { getWeather } from "./ai/tools/get-weather";
-import type { requestSuggestions } from "./ai/tools/request-suggestions";
-import type { updateDocument } from "./ai/tools/update-document";
 import type { Suggestion } from "./db/schema";
+
+// ── Example tool type import (weather) ──
+import type { getWeather } from "./ai/tools/get-weather";
 
 export type DataPart = { type: "append-message"; message: string };
 
@@ -16,30 +15,34 @@ export const messageMetadataSchema = z.object({
 export type MessageMetadata = z.infer<typeof messageMetadataSchema>;
 
 // ============================================================================
-// WORKSHOP: Tool Types
+// WORKSHOP: Register your tool types here
 // ============================================================================
-// These types tell the UI how to render tool results in messages.
-// When you add a new tool, add its type here so components/message.tsx
-// can render it properly.
+// Each tool you create needs a type so the UI knows how to render its results.
 //
-// Example for a new tool:
-//   import type { myTool } from "./ai/tools/my-tool";
-//   type myToolType = InferUITool<typeof myTool>;
-//   // Then add to ChatTools: myTool: myToolType;
+// Steps:
+//   1. Import your tool:
+//        import type { myTool } from "./ai/tools/my-tool";
+//
+//   2. Create a type alias:
+//        type myToolType = InferUITool<typeof myTool>;
+//      (If your tool is a factory function, use: InferUITool<ReturnType<typeof myTool>>)
+//
+//   3. Add it to ChatTools below:
+//        myTool: myToolType;
 // ============================================================================
 
+// ── Example: weather tool type ──
 type weatherTool = InferUITool<typeof getWeather>;
-type createDocumentTool = InferUITool<ReturnType<typeof createDocument>>;
-type updateDocumentTool = InferUITool<ReturnType<typeof updateDocument>>;
-type requestSuggestionsTool = InferUITool<
-  ReturnType<typeof requestSuggestions>
->;
+
+// ── ADD YOUR TOOL TYPES HERE ──
+// type myToolType = InferUITool<typeof myTool>;
 
 export type ChatTools = {
+  // ── Example tool ──
   getWeather: weatherTool;
-  createDocument: createDocumentTool;
-  updateDocument: updateDocumentTool;
-  requestSuggestions: requestSuggestionsTool;
+
+  // ── ADD YOUR TOOLS HERE ──
+  // myTool: myToolType;
 };
 
 export type CustomUIDataTypes = {

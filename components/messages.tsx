@@ -1,10 +1,10 @@
 import type { UseChatHelpers } from "@ai-sdk/react";
 import { ArrowDownIcon } from "lucide-react";
 import { useMessages } from "@/hooks/use-messages";
-import type { BenchmarkResult } from "@/lib/benchmark";
+import type { BenchmarkResult } from "@/benchmark/benchmark";
 import type { Vote } from "@/lib/db/schema";
 import type { ChatMessage } from "@/lib/types";
-import { BenchmarkResults } from "./benchmark-results";
+import { BenchmarkResults } from "@/benchmark/benchmark-results";
 import { useDataStream } from "./data-stream-provider";
 import { Greeting } from "./greeting";
 import { PreviewMessage, ThinkingMessage } from "./message";

@@ -13,7 +13,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import type { BenchmarkResult, LeaderboardEntry } from "@/lib/benchmark";
+import type { BenchmarkResult, LeaderboardEntry } from "./benchmark";
 
 function formatDuration(ms: number) {
   const seconds = Math.floor(ms / 1000);

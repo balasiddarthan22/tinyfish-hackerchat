@@ -1,6 +1,6 @@
 import { auth } from "@/app/(auth)/auth";
 import { ChatbotError } from "@/lib/errors";
-import type { BenchmarkResult } from "@/lib/benchmark";
+import type { BenchmarkResult } from "@/benchmark/benchmark";
 
 const ARENA_BASE_URL = process.env.ARENA_BASE_URL!;
 
