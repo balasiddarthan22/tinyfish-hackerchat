@@ -3,8 +3,16 @@ import { z } from "zod";
 import type { ArtifactKind } from "@/components/artifact";
 import type { Suggestion } from "./db/schema";
 
-// ── Example tool type import (weather) ──
 import type { getWeather } from "./ai/tools/get-weather";
+import type { accessLogsTool } from "./ai/tools/accessLogsTool";
+import type { searchCommunicationsTool } from "./ai/tools/search-communications";
+import type { getEmployeeTool } from "./ai/tools/get-employee";
+import type { getFacilityPoliciesTool } from "./ai/tools/get-facility-policies";
+import type { searchBookingsTool } from "./ai/tools/search-bookings";
+import type { getRoomDetailsTool } from "./ai/tools/get-room-details";
+import type { getServerDetailsTool } from "./ai/tools/get-server-details";
+import type { listSecurityPatchesTool } from "./ai/tools/list-security-patches";
+import type { applySecurityPatchTool } from "./ai/tools/apply-security-patch";
 
 export type DataPart = { type: "append-message"; message: string };
 
@@ -14,35 +22,28 @@ export const messageMetadataSchema = z.object({
 
 export type MessageMetadata = z.infer<typeof messageMetadataSchema>;
 
-// ============================================================================
-// WORKSHOP: Register your tool types here
-// ============================================================================
-// Each tool you create needs a type so the UI knows how to render its results.
-//
-// Steps:
-//   1. Import your tool:
-//        import type { myTool } from "./ai/tools/my-tool";
-//
-//   2. Create a type alias:
-//        type myToolType = InferUITool<typeof myTool>;
-//      (If your tool is a factory function, use: InferUITool<ReturnType<typeof myTool>>)
-//
-//   3. Add it to ChatTools below:
-//        myTool: myToolType;
-// ============================================================================
-
-// ── Example: weather tool type ──
 type weatherTool = InferUITool<typeof getWeather>;
-
-// ── ADD YOUR TOOL TYPES HERE ──
-// type myToolType = InferUITool<typeof myTool>;
+type accessLogsToolType = InferUITool<typeof accessLogsTool>;
+type searchCommunicationsToolType = InferUITool<typeof searchCommunicationsTool>;
+type getEmployeeToolType = InferUITool<typeof getEmployeeTool>;
+type getFacilityPoliciesToolType = InferUITool<typeof getFacilityPoliciesTool>;
+type searchBookingsToolType = InferUITool<typeof searchBookingsTool>;
+type getRoomDetailsToolType = InferUITool<typeof getRoomDetailsTool>;
+type getServerDetailsToolType = InferUITool<typeof getServerDetailsTool>;
+type listSecurityPatchesToolType = InferUITool<typeof listSecurityPatchesTool>;
+type applySecurityPatchToolType = InferUITool<typeof applySecurityPatchTool>;
 
 export type ChatTools = {
-  // ── Example tool ──
   getWeather: weatherTool;
-
-  // ── ADD YOUR TOOLS HERE ──
-  // myTool: myToolType;
+  accessLogsTool: accessLogsToolType;
+  searchCommunicationsTool: searchCommunicationsToolType;
+  getEmployeeTool: getEmployeeToolType;
+  getFacilityPoliciesTool: getFacilityPoliciesToolType;
+  searchBookingsTool: searchBookingsToolType;
+  getRoomDetailsTool: getRoomDetailsToolType;
+  getServerDetailsTool: getServerDetailsToolType;
+  listSecurityPatchesTool: listSecurityPatchesToolType;
+  applySecurityPatchTool: applySecurityPatchToolType;
 };
 
 export type CustomUIDataTypes = {

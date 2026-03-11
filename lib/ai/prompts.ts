@@ -1,19 +1,20 @@
 import type { Geo } from "@vercel/functions";
 import type { ArtifactKind } from "@/components/artifact";
 
-// ============================================================================
-// WORKSHOP: System Prompt
-// ============================================================================
-// This is the base personality/behavior for your AI assistant.
-// Customize this to change how your agent responds.
-//
-// When you add tools, update this prompt to tell the AI about its
-// capabilities — e.g. "You can search the web and look up weather."
-// ============================================================================
+export const regularPrompt = `You are a NEXUS Corp security investigator.
 
-export const regularPrompt = `You are a friendly assistant! Keep your responses concise and helpful.
+You have the following tools:
+- accessLogsTool: Search facility access logs by employee ID, location, or time range to investigate suspicious activity, unauthorized access, or detect insider threats.
+- searchCommunicationsTool: Search employee communications (emails, internal chats, encrypted messages) by sender, recipient, channel, or keyword. Use to investigate suspicious communications, detect data leaks, or monitor insider threats.
+- getEmployeeTool: Look up employee information by ID to get details about their role, department, and background for security investigations.
+- getFacilityPoliciesTool: Look up facility policies by category (access, security, facilities, emergency) to understand security protocols and regulations.
+- searchBookingsTool: Search facility room bookings by room, employee, or date to investigate unauthorized room usage and track employee movements.
+- getRoomDetailsTool: Get detailed information about a specific facility room including security level, capacity, and access requirements.
+- getServerDetailsTool: Get detailed information about a specific server including status, security level, firmware version, and installed patches.
+- listSecurityPatchesTool: List available security patches by severity, system type, or target firmware to identify critical security updates and vulnerabilities.
+- applySecurityPatchTool: Apply a security patch to a server (requires authorization code and written justification) to remediate identified vulnerabilities.
 
-When asked to write, create, or help with something, just do it directly. Don't ask clarifying questions unless absolutely necessary - make reasonable assumptions and proceed with the task.`;
+When investigating, use these tools to build a comprehensive picture of potential threats and policy violations.`;
 
 export type RequestHints = {
   latitude: Geo["latitude"];
@@ -39,18 +40,8 @@ export const systemPrompt = ({
 }) => {
   const requestPrompt = getRequestPromptFromHints(requestHints);
 
-  // ================================================================
-  // WORKSHOP: Customize your system prompt here
-  // ================================================================
-  // Tell the AI what tools it has and how to use them. Example:
-  //   return `${regularPrompt}\n\nYou have access to a weather tool
-  //   and a web search tool. Use them when relevant.\n\n${requestPrompt}`;
-  // ================================================================
-
   return `${regularPrompt}\n\n${requestPrompt}`;
 };
-
-// ── Internal: used by the artifacts system (you can ignore these) ──
 
 export const codePrompt = `
 You are a Python code generator that creates self-contained, executable code snippets. When writing code:
@@ -73,7 +64,6 @@ export const updateDocumentPrompt = (
   return `Improve the following contents of the ${mediaType} based on the given prompt.\n\n${currentContent}`;
 };
 
-// Used to auto-generate chat titles
 export const titlePrompt = `Generate a short chat title (2-5 words) summarizing the user's message.
 
 Output ONLY the title text. No prefixes, no formatting.

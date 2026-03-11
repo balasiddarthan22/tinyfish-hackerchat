@@ -28,17 +28,15 @@ import type { ChatMessage } from "@/lib/types";
 import { convertToUIMessages, generateUUID } from "@/lib/utils";
 import { generateTitleFromUserMessage } from "../../actions";
 import { type PostRequestBody, postRequestBodySchema } from "./schema";
-
-// ============================================================================
-// WORKSHOP: Import your tools here
-// ============================================================================
-// Example:
-//   import { getWeatherTool } from "@/lib/ai/tools/get-weather";
-//   import { createDocumentTool } from "@/lib/ai/tools/create-document";
-//
-// Tools are defined in lib/ai/tools/ — check the examples there.
-// Each tool uses the Vercel AI SDK's `tool()` function.
-// ============================================================================
+import { accessLogsTool } from "@/lib/ai/tools/accessLogsTool";
+import { searchCommunicationsTool } from "@/lib/ai/tools/search-communications";
+import { getEmployeeTool } from "@/lib/ai/tools/get-employee";
+import { getFacilityPoliciesTool } from "@/lib/ai/tools/get-facility-policies";
+import { searchBookingsTool } from "@/lib/ai/tools/search-bookings";
+import { getRoomDetailsTool } from "@/lib/ai/tools/get-room-details";
+import { getServerDetailsTool } from "@/lib/ai/tools/get-server-details";
+import { listSecurityPatchesTool } from "@/lib/ai/tools/list-security-patches";
+import { applySecurityPatchTool } from "@/lib/ai/tools/apply-security-patch";
 
 export const maxDuration = 60;
 
@@ -137,22 +135,18 @@ export async function POST(request: Request) {
           model: getLanguageModel(selectedChatModel),
           system: systemPrompt({ selectedChatModel, requestHints }),
           messages: modelMessages,
-
-          // ================================================================
-          // WORKSHOP: Add your tools here
-          // ================================================================
-          // Uncomment and add your tools to give the AI agent capabilities:
-          //
-          // tools: {
-          //   getWeather: getWeatherTool,
-          //   createDocument: createDocumentTool({ session }),
-          //   // Add more tools here...
-          // },
-          //
-          // Enable multi-step tool use (agentic loop):
-          // stopWhen: stepCountIs(5),
-          // ================================================================
-
+          tools: {
+            accessLogsTool: accessLogsTool,
+            searchCommunicationsTool: searchCommunicationsTool,
+            getEmployeeTool: getEmployeeTool,
+            getFacilityPoliciesTool: getFacilityPoliciesTool,
+            searchBookingsTool: searchBookingsTool,
+            getRoomDetailsTool: getRoomDetailsTool,
+            getServerDetailsTool: getServerDetailsTool,
+            listSecurityPatchesTool: listSecurityPatchesTool,
+            applySecurityPatchTool: applySecurityPatchTool,
+          },
+          stopWhen: stepCountIs(20),
           experimental_transform: smoothStream(),
           providerOptions: isReasoningModel
             ? {

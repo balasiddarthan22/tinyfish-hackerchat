@@ -1,4 +1,5 @@
 "use client";
+
 import type { UseChatHelpers } from "@ai-sdk/react";
 import { useState } from "react";
 import type { Vote } from "@/lib/db/schema";
@@ -18,8 +19,109 @@ import { MessageActions } from "./message-actions";
 import { MessageEditor } from "./message-editor";
 import { MessageReasoning } from "./message-reasoning";
 import { PreviewAttachment } from "./preview-attachment";
-// ── Example tool UI component ──
 import { Weather } from "./weather";
+
+const toolTypes = [
+  "accessLogsTool",
+  "searchCommunicationsTool",
+  "getEmployeeTool",
+  "getFacilityPoliciesTool",
+  "searchBookingsTool",
+  "getRoomDetailsTool",
+  "getServerDetailsTool",
+  "listSecurityPatchesTool",
+  "applySecurityPatchTool",
+] as const;
+
+const renderToolOutput = (
+  type: string,
+  part: any,
+  toolCallId: string,
+  state: string,
+  approvalId: string | undefined,
+  addToolApprovalResponse: any
+) => {
+  const isDenied =
+    state === "output-denied" ||
+    (state === "approval-responded" &&
+      (part as { approval?: { approved?: boolean } }).approval?.approved ===
+        false);
+  const widthClass = "w-[min(100%,700px)]";
+
+  if (state === "output-available") {
+    return (
+      <div className={widthClass} key={toolCallId}>
+        <Tool className="w-full" defaultOpen={true}>
+          <ToolHeader state={state} type={`tool-${type}`} />
+          <ToolContent>
+            <div className="overflow-x-auto px-4 py-3">
+              <pre className="text-sm font-mono">
+                {JSON.stringify(part.output, null, 2)}
+              </pre>
+            </div>
+          </ToolContent>
+        </Tool>
+      </div>
+    );
+  }
+
+  if (isDenied) {
+    return (
+      <div className={widthClass} key={toolCallId}>
+        <Tool className="w-full" defaultOpen={true}>
+          <ToolHeader state="output-denied" type={`tool-${type}`} />
+          <ToolContent>
+            <div className="px-4 py-3 text-muted-foreground text-sm">
+              {type} was denied.
+            </div>
+          </ToolContent>
+        </Tool>
+      </div>
+    );
+  }
+
+  return (
+    <div className={widthClass} key={toolCallId}>
+      <Tool className="w-full" defaultOpen={true}>
+        <ToolHeader state={state} type={`tool-${type}`} />
+        <ToolContent>
+          {(state === "input-available" || state === "approval-requested") && (
+            <ToolInput input={part.input} />
+          )}
+          {state === "approval-requested" && approvalId && (
+            <div className="flex items-center justify-end gap-2 border-t px-4 py-3">
+              <button
+                className="rounded-md px-3 py-1.5 text-muted-foreground text-sm transition-colors hover:bg-muted hover:text-foreground"
+                onClick={() => {
+                  addToolApprovalResponse({
+                    id: approvalId,
+                    approved: false,
+                    reason: `User denied ${type}`,
+                  });
+                }}
+                type="button"
+              >
+                Deny
+              </button>
+              <button
+                className="rounded-md bg-primary px-3 py-1.5 text-primary-foreground text-sm transition-colors hover:bg-primary/90"
+                onClick={() => {
+                  addToolApprovalResponse({
+                    id: approvalId,
+                    approved: true,
+                  });
+                }}
+                type="button"
+              >
+                Allow
+              </button>
+            </div>
+          )}
+        </ToolContent>
+      </Tool>
+    </div>
+  );
+};
 
 const PurePreviewMessage = ({
   addToolApprovalResponse,
@@ -165,145 +267,121 @@ const PurePreviewMessage = ({
               }
             }
 
-            {/* ============================================================
-               EXAMPLE TOOL UI: Weather
-               ============================================================
-               This shows how to render a tool's output in the chat.
-               The `type` matches "tool-" + the key you used in the
-               `tools` object in route.ts (e.g. "getWeather" → "tool-getWeather").
+            if (type === "tool-getWeather")
+              return (() => {
+                const { toolCallId, state } = part;
+                const approvalId = (part as { approval?: { id: string } })
+                  .approval?.id;
+                const isDenied =
+                  state === "output-denied" ||
+                  (state === "approval-responded" &&
+                    (part as { approval?: { approved?: boolean } }).approval
+                      ?.approved === false);
+                const widthClass = "w-[min(100%,450px)]";
 
-               Tool states:
-                 - "input-available"     → tool was called, showing input
-                 - "approval-requested"  → waiting for user to approve/deny
-                 - "approval-responded"  → user responded, executing...
-                 - "output-available"    → tool finished, show the result
-                 - "output-denied"       → user denied the tool call
-               ============================================================ */}
-            if (type === "tool-getWeather") return (() => {
-              const { toolCallId, state } = part;
-              const approvalId = (part as { approval?: { id: string } })
-                .approval?.id;
-              const isDenied =
-                state === "output-denied" ||
-                (state === "approval-responded" &&
-                  (part as { approval?: { approved?: boolean } }).approval
-                    ?.approved === false);
-              const widthClass = "w-[min(100%,450px)]";
+                if (state === "output-available") {
+                  return (
+                    <div className={widthClass} key={toolCallId}>
+                      <Weather weatherAtLocation={part.output} />
+                    </div>
+                  );
+                }
 
-              if (state === "output-available") {
-                return (
-                  <div className={widthClass} key={toolCallId}>
-                    <Weather weatherAtLocation={part.output} />
-                  </div>
-                );
-              }
+                if (isDenied) {
+                  return (
+                    <div className={widthClass} key={toolCallId}>
+                      <Tool className="w-full" defaultOpen={true}>
+                        <ToolHeader
+                          state="output-denied"
+                          type="tool-getWeather"
+                        />
+                        <ToolContent>
+                          <div className="px-4 py-3 text-muted-foreground text-sm">
+                            Weather lookup was denied.
+                          </div>
+                        </ToolContent>
+                      </Tool>
+                    </div>
+                  );
+                }
 
-              if (isDenied) {
-                return (
-                  <div className={widthClass} key={toolCallId}>
-                    <Tool className="w-full" defaultOpen={true}>
-                      <ToolHeader
-                        state="output-denied"
-                        type="tool-getWeather"
-                      />
-                      <ToolContent>
-                        <div className="px-4 py-3 text-muted-foreground text-sm">
-                          Weather lookup was denied.
-                        </div>
-                      </ToolContent>
-                    </Tool>
-                  </div>
-                );
-              }
+                if (state === "approval-responded") {
+                  return (
+                    <div className={widthClass} key={toolCallId}>
+                      <Tool className="w-full" defaultOpen={true}>
+                        <ToolHeader state={state} type="tool-getWeather" />
+                        <ToolContent>
+                          <ToolInput input={part.input} />
+                        </ToolContent>
+                      </Tool>
+                    </div>
+                  );
+                }
 
-              if (state === "approval-responded") {
                 return (
                   <div className={widthClass} key={toolCallId}>
                     <Tool className="w-full" defaultOpen={true}>
                       <ToolHeader state={state} type="tool-getWeather" />
                       <ToolContent>
-                        <ToolInput input={part.input} />
+                        {(state === "input-available" ||
+                          state === "approval-requested") && (
+                          <ToolInput input={part.input} />
+                        )}
+                        {state === "approval-requested" && approvalId && (
+                          <div className="flex items-center justify-end gap-2 border-t px-4 py-3">
+                            <button
+                              className="rounded-md px-3 py-1.5 text-muted-foreground text-sm transition-colors hover:bg-muted hover:text-foreground"
+                              onClick={() => {
+                                addToolApprovalResponse({
+                                  id: approvalId,
+                                  approved: false,
+                                  reason: "User denied weather lookup",
+                                });
+                              }}
+                              type="button"
+                            >
+                              Deny
+                            </button>
+                            <button
+                              className="rounded-md bg-primary px-3 py-1.5 text-primary-foreground text-sm transition-colors hover:bg-primary/90"
+                              onClick={() => {
+                                addToolApprovalResponse({
+                                  id: approvalId,
+                                  approved: true,
+                                });
+                              }}
+                              type="button"
+                            >
+                              Allow
+                            </button>
+                          </div>
+                        )}
                       </ToolContent>
                     </Tool>
                   </div>
                 );
+              })();
+
+            // Generic tool renderer for all other tools
+            for (const toolType of toolTypes) {
+              if (type === `tool-${toolType}`) {
+                // ADDED TYPE ASSERTIONS BELOW TO RESOLVE TS RED SQUIGGLY
+                const { toolCallId, state } = part as {
+                  toolCallId: string;
+                  state: string;
+                };
+                const approvalId = (part as { approval?: { id: string } })
+                  .approval?.id;
+                return renderToolOutput(
+                  toolType,
+                  part,
+                  toolCallId,
+                  state,
+                  approvalId,
+                  addToolApprovalResponse
+                );
               }
-
-              return (
-                <div className={widthClass} key={toolCallId}>
-                  <Tool className="w-full" defaultOpen={true}>
-                    <ToolHeader state={state} type="tool-getWeather" />
-                    <ToolContent>
-                      {(state === "input-available" ||
-                        state === "approval-requested") && (
-                        <ToolInput input={part.input} />
-                      )}
-                      {state === "approval-requested" && approvalId && (
-                        <div className="flex items-center justify-end gap-2 border-t px-4 py-3">
-                          <button
-                            className="rounded-md px-3 py-1.5 text-muted-foreground text-sm transition-colors hover:bg-muted hover:text-foreground"
-                            onClick={() => {
-                              addToolApprovalResponse({
-                                id: approvalId,
-                                approved: false,
-                                reason: "User denied weather lookup",
-                              });
-                            }}
-                            type="button"
-                          >
-                            Deny
-                          </button>
-                          <button
-                            className="rounded-md bg-primary px-3 py-1.5 text-primary-foreground text-sm transition-colors hover:bg-primary/90"
-                            onClick={() => {
-                              addToolApprovalResponse({
-                                id: approvalId,
-                                approved: true,
-                              });
-                            }}
-                            type="button"
-                          >
-                            Allow
-                          </button>
-                        </div>
-                      )}
-                    </ToolContent>
-                  </Tool>
-                </div>
-              );
-            })();
-
-            /* ==========================================================
-               WORKSHOP: Add your tool UI rendering here
-               ==========================================================
-               For each tool you create, add a block like:
-
-               if (type === "tool-yourToolName") return (() => {
-                 const { toolCallId, state } = part;
-
-                 // Show output when tool is done
-                 if (state === "output-available") {
-                   return (
-                     <div key={toolCallId}>
-                       <pre>{JSON.stringify(part.output, null, 2)}</pre>
-                     </div>
-                   );
-                 }
-
-                 // Default: show a loading/input state
-                 return (
-                   <Tool defaultOpen={true} key={toolCallId}>
-                     <ToolHeader state={state} type="tool-yourToolName" />
-                     <ToolContent>
-                       <ToolInput input={part.input} />
-                     </ToolContent>
-                   </Tool>
-                 );
-               })();
-
-               ========================================================== */
-
-            /* If no tool matched, render nothing */
+            }
           })}
 
           {!isReadonly && (
